@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import rclpy
 import random
 import numpy as np
@@ -7,7 +8,7 @@ from rclpy.node import Node
 from kconn_sim.barrier_certificates import BarrierCertificates
 from kconn_sim.agent import Agent
 from kconn_sim.cluster import Cluster
-from kconn_sim.network import K1Network
+from kconn_sim.network import K0Network, Network
 from kconn_sim.plotting import *
 from time import sleep
 from sklearn.cluster import KMeans
@@ -28,7 +29,9 @@ class Simulation(Node):
         self.k0 = 2
         self.k1 = 3
 
-        self.n_clust = int(self.type0/self.type1)
+        self.n_clust = self.type1
+
+        self.control_magnitude = 1 #move at 1 m/s
         
         self.env = {0:np.array((-100,100,0)),
                          1: np.array((100,100,0)),
@@ -44,20 +47,20 @@ class Simulation(Node):
         
         
     def __init_swarm__(self):
-
+        # add layer1 agents to swarm
         for i in range(self.type0):
             
             self.swarm.append( Agent(i,
                                      np.append(np.random.randint(-5,5,size=2), np.array((0))),
                                      random.randint(0,2),
                                      0) )
-            
+        # add layer 2 agents to swarm 
         for i in range(self.type1):
             self.swarm.append( Agent(i+self.type0,
                                      np.append(np.random.randint(-5,5,size=2),np.array((1))),
                                      random.randint(0,2),
                                      1) )
-            
+        # initialize the clusters 
         for i in range(self.n_clust):
             self.clusters.append( Cluster(i) ) 
             
@@ -84,12 +87,25 @@ class Simulation(Node):
         return km.labels_, km.cluster_centers_
 
     def matching(self, centroids):
+        # TODO: make this resistant if type0/type1 is not int -- DONE
+
         W = cdist(self.locations[self.type0:],centroids, 'euclidean')
         for iter, ag in enumerate(self.swarm[self.type0:]):
             ag.cluster = np.argmin(W[iter])
+            W = np.delete(W,ag.cluster,axis=1)
+            
         for cluster in self.clusters:
             cluster.add_members( self.swarm[self.type0:] )
 
+    def calc_control_vector(self):
+        control_vector = np.zeros((1,3))
+        for ag in self.swarm:
+            theta = math.atan2(ag.location[1],ag.location[0]) - math.atan2(self.env[ag.task][1], self.env[ag.task][0])
+            control_vector[0] = self.magnitude * math.cos(theta)
+            control_vector[1] = self.magnitude * math.sin(theta)
+
+            ag.set_desired_control(control_vector)
+            
     def cycle(self):
 
         while rclpy.ok():
@@ -106,18 +122,21 @@ class Simulation(Node):
 
             self.matching(centroids)
             
-            k1net = K1Network(self.clusters, self.k0)
+            k0net = K0Network(self.clusters, self.k0)
 
+            net = Network(self.clusters, self.swarm, k0net, self.k0, self.k1)
+            net.connect()
+            
             for ag in self.swarm:
-                ag.set_connections(k1net.connections)
+                ag.set_connections(net.connections)
                 print(ag)
-            print(len(k1net.connections))
+
+            print((net.connections))
+
             break
             #sleep(1)
 
             
-            
-
 if __name__ == "__main__":
     rclpy.init()
 

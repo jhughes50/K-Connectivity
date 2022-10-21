@@ -29,13 +29,18 @@ class Cluster:
             if ag.cluster == self.cluster_id:
                 self.members.append( ag._id )
                 self.index_type0.append(self.iter)
+                self.iter += 1
 
     def add_members(self, swarm):
+        """ Add layer2 members to the cluster """
+        # insert the L2 member in the middle of the cluster
+        insert_ind = int(len(swarm) / 2)
         for ag in swarm:
             if ag.cluster == self.cluster_id:
-                self.members.append( ag._id )
-                self.index_type1.append(self.iter)
-                
+                self.members.insert( insert_ind, ag._id )
+                self.index_type1.insert( insert_ind, self.iter)
+                self.iter += 1
+
     def set_centroid(self, center):
         self.centroid = center
 

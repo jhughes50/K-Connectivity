@@ -10,7 +10,8 @@ class Agent:
         self.agent_type = agent_type
         self.cluster = None
         self.connections = list()
-
+        self.desired_control = None 
+        
     def __str__(self):
         output =( "AGENT: %s\n"%self._id+
                   "location: %s\n"%self.location+
@@ -30,5 +31,8 @@ class Agent:
                 self.connections.append( conn[1] )
             elif conn[1] == self._id:
                 self.connections.append( conn[0] )
-                
+
+    def set_desired_control(self, control_input: np.array):
+        self.desired_control = control_input
+        
         

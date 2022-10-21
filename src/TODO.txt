@@ -1,0 +1,6 @@
+K-Connecticity Simulation TODO's
+
+TODO: Implement control vector into agent class
+TODO: Add movement at each iteration
+TODO: Build up BoundaryCertificates class for incorporation to the OP
+TODO: Add minimally invasive control algorithm
