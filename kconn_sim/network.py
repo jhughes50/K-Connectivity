@@ -3,7 +3,7 @@ import itertools
 
 class Network():
 
-    def __init__(self, clusters, swarm, k0net, k0, k1):
+    def __init__(self, clusters, swarm, k0net, k0, k1, type_sep, num_type1):
 
         self.clusters = clusters
         self.swarm = swarm
@@ -12,21 +12,27 @@ class Network():
         self.k0 = k0
         self.k1 = k1
 
+        self.type_sep = type_sep
+        self.n_type1 = num_type1
+        
         self.connections = k0net.connections
         
     def connect(self):
         n = len(self.swarm)
         k_iter = 1
-        
-        while k_iter < (self.k1 - self.k0):
-            for ag1 in self.swarm:
-                for ag2 in self.swarm:
-                    if (ag1.agent_type == 1) and (ag2.agent_type == 1) and (ag1._id != ag2._id):
-                        if abs(ag1._id-ag2._id) % n == k_iter:
+        print('connecting layer 2')
+        while k_iter <= (self.k1 - self.k0):
+            
+            for ag1 in self.swarm[self.type_sep:]:
+                for ag2 in self.swarm[self.type_sep:]:
+                    if ag1._id != ag2._id:
+                        if ( ag1._id - ag2._id ) % self.n_type1 == k_iter:
                             print('connecting %s to %s' %(ag1._id,ag2._id))
                             self.connections.append((ag1._id, ag2._id))
             k_iter += 1
 
+
+            
 class K0Network():
 
     def __init__(self, clusters, k0):
@@ -54,6 +60,8 @@ class K0Network():
                 for j in range(i,self.n_nodes): 
                     if abs( i - j ) % self.n_nodes == iter: 
                         self.connections.append((nodes[i],nodes[j]))
+            
             iter += 1
-
+        # connect the last node to the first one
+        self.connections.append((nodes[0],nodes[self.n_nodes-1]))
 

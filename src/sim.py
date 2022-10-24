@@ -90,10 +90,11 @@ class Simulation(Node):
         # TODO: make this resistant if type0/type1 is not int -- DONE
 
         W = cdist(self.locations[self.type0:],centroids, 'euclidean')
+        print(W)
         for iter, ag in enumerate(self.swarm[self.type0:]):
             ag.cluster = np.argmin(W[iter])
-            W = np.delete(W,ag.cluster,axis=1)
-            
+            W[:,ag.cluster] = np.inf
+        
         for cluster in self.clusters:
             cluster.add_members( self.swarm[self.type0:] )
 
@@ -124,7 +125,7 @@ class Simulation(Node):
             
             k0net = K0Network(self.clusters, self.k0)
 
-            net = Network(self.clusters, self.swarm, k0net, self.k0, self.k1)
+            net = Network(self.clusters, self.swarm, k0net, self.k0, self.k1, self.type0, self.type1)
             net.connect()
             
             for ag in self.swarm:
