@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class Agent:
 
@@ -19,6 +20,7 @@ class Agent:
                   "type: %s\n"%self.agent_type+
                   "cluster: %s\n"%self.cluster+
                   "connections: %s\n"%self.connections+
+                  "control: %s\n"%self.desired_control+
                   "\n"
                  )
         return output
@@ -32,7 +34,14 @@ class Agent:
             elif conn[1] == self._id:
                 self.connections.append( conn[0] )
 
-    def set_desired_control(self, control_input: np.array):
-        self.desired_control = control_input
+    def set_desired_control(self, magnitude: float):
+        control_vector = np.zeros((1,3))[0]
+        v = self.task[:-1] - self.location[:-1]
+        v = v/np.linalg.norm(v)
+        
+        control_vector[0] = magnitude * v[0]
+        control_vector[1] = magnitude * v[1]
+        
+        self.desired_control = control_vector
         
         

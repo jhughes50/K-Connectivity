@@ -52,13 +52,13 @@ class Simulation(Node):
             
             self.swarm.append( Agent(i,
                                      np.append(np.random.randint(-5,5,size=2), np.array((0))),
-                                     random.randint(0,2),
+                                     self.env[random.randint(0,2)],
                                      0) )
         # add layer 2 agents to swarm 
         for i in range(self.type1):
             self.swarm.append( Agent(i+self.type0,
                                      np.append(np.random.randint(-5,5,size=2),np.array((1))),
-                                     random.randint(0,2),
+                                     self.env[random.randint(0,2)],
                                      1) )
         # initialize the clusters 
         for i in range(self.n_clust):
@@ -130,6 +130,7 @@ class Simulation(Node):
             
             for ag in self.swarm:
                 ag.set_connections(net.connections)
+                ag.set_desired_control(float(self.control_magnitude))
                 print(ag)
 
             print((net.connections))
