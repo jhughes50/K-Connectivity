@@ -4,8 +4,9 @@ import math
 import rclpy
 import random
 import numpy as np
+from scipy.optimize import minimize, rosen, rosen_der, LinearConstraint
 from rclpy.node import Node
-from kconn_sim.barrier_certificates import BarrierCertificates
+from kconn_sim.barrier_certificates import SafetyCertificate, ConnectionCertificate
 from kconn_sim.agent import Agent
 from kconn_sim.cluster import Cluster
 from kconn_sim.network import K0Network, Network
@@ -24,6 +25,9 @@ class Simulation(Node):
         self.type0 = 15
         self.type1 = 5
 
+        self.r_conn = 25
+        self.r_safety = 1
+
         assert self.num_agents == (self.type0 + self.type1)
 
         self.k0 = 2
@@ -38,6 +42,7 @@ class Simulation(Node):
                          2: np.array((-100,-100,0))}
 
         self.locations = np.array((1,1,1)) 
+        self.swarm_control = None
         
         self.swarm = list()
         self.clusters = list()
@@ -106,9 +111,27 @@ class Simulation(Node):
             control_vector[1] = self.magnitude * math.sin(theta)
 
             ag.set_desired_control(control_vector)
+
+    def set_swarm_control(self):
+        for ag in self.swarm:
+            u = ag.desired_control
+            if ag._id == 0:
+                self.swarm_control = u
+            else:
+                self.swarm_control = np.concatenate((self.swarm_control,u), axis=None)
+                
+    def get_constraints(self):
+        pass
+
+    def optimize(self):
+        func = lambda u : np.sum( np.linalg.norm(u - self.swarm_control)**2 )
+        cons = ({'type': 'ineq', 'fun': lambda 
             
     def cycle(self):
 
+        Bs = SafetyCertificate(self.r_safety, self.swarm, 1)
+        Bc = ConnectionCertificate(self.r_conn, self.swarm, 1)
+        
         while rclpy.ok():
 
             labels, centroids = self.cluster()
@@ -132,7 +155,13 @@ class Simulation(Node):
                 ag.set_connections(net.connections)
                 ag.set_desired_control(float(self.control_magnitude))
                 print(ag)
-
+                
+            Bs.construct_A()
+            Bc.construct_A(net.connections)
+            self.set_swarm_control()
+            print(self.swarm_control)
+            print(self.swarm_control.shape)
+            
             print((net.connections))
 
             break
