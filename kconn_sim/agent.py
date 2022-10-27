@@ -43,5 +43,7 @@ class Agent:
         control_vector[1] = magnitude * v[1]
         
         self.desired_control = control_vector
-        
+
+    def update_location(self, u):
+        self.location = self.location + u
         

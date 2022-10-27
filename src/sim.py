@@ -33,6 +33,8 @@ class Simulation(Node):
         self.k0 = 2
         self.k1 = 3
 
+        self.alpha = 1
+
         self.n_clust = self.type1
 
         self.control_magnitude = 1 #move at 1 m/s
@@ -119,18 +121,26 @@ class Simulation(Node):
                 self.swarm_control = u
             else:
                 self.swarm_control = np.concatenate((self.swarm_control,u), axis=None)
-                
-    def get_constraints(self):
-        pass
 
-    def optimize(self):
+    def optimize(self, Bs, Bc):
+
+        u0 = np.ones(3*self.num_agents)
+        
         func = lambda u : np.sum( np.linalg.norm(u - self.swarm_control)**2 )
-        cons = ({'type': 'ineq', 'fun': lambda 
-            
+        cons = ({'type': 'ineq', 'fun': lambda u: Bs.b - np.matmul(Bs.A,u.T)},
+                {'type': 'ineq', 'fun': lambda u: Bc.b - np.matmul(Bc.A,u.T)},
+                {'type': 'ineq', 'fun': lambda u: self.alpha - np.linalg.norm(u)})  
+
+        res = minimize(func, u0, method='SLSQP', constraints=cons)
+        return np.reshape(res.x,(self.num_agents,3))
+
+                
     def cycle(self):
 
         Bs = SafetyCertificate(self.r_safety, self.swarm, 1)
         Bc = ConnectionCertificate(self.r_conn, self.swarm, 1)
+
+        cycle_iter = 0
         
         while rclpy.ok():
 
@@ -157,15 +167,22 @@ class Simulation(Node):
                 print(ag)
                 
             Bs.construct_A()
-            Bc.construct_A(net.connections)
-            self.set_swarm_control()
-            print(self.swarm_control)
-            print(self.swarm_control.shape)
+            Bs.construct_b()
+            Bc.construct_A()
+            Bc.construct_b()
             
-            print((net.connections))
+            self.set_swarm_control()
+            
+            u_star = self.optimize(Bs,Bc)
+            
+            for ag in self.swarm:
+                ag.update_location(u_star[ag._id])
 
-            break
-            #sleep(1)
+            if cycle_iter == 200:
+                break
+            else:
+                cycle_iter += 1
+                sleep(1)
 
             
 if __name__ == "__main__":
