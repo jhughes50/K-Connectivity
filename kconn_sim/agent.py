@@ -45,5 +45,8 @@ class Agent:
         self.desired_control = control_vector
 
     def update_location(self, u):
+        #norm_u = u/np.sum(u)
+        #print('u: ',u)
+        #print('norm: ',norm_u)
         self.location = self.location + u
-        
+        #print(self.location)

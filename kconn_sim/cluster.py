@@ -21,11 +21,11 @@ class Cluster:
         """ return the number of nodes in the cluster """
         return len(self.members)
     
-    def set_members(self, swarm):
-        self.members.clear()
+    def set_members(self, swarm, sep):
+        self.members = list()
         self.iter = 0
         
-        for ag in swarm:
+        for ag in swarm[:sep]:
             if ag.cluster == self.cluster_id:
                 self.members.append( ag._id )
                 self.index_type0.append(self.iter)

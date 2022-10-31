@@ -20,15 +20,14 @@ class Network():
     def connect(self):
         n = len(self.swarm)
         k_iter = 1
-        print('connecting layer 2')
+        
         while k_iter <= (self.k1 - self.k0):
-            
             for ag1 in self.swarm[self.type_sep:]:
                 for ag2 in self.swarm[self.type_sep:]:
                     if ag1._id != ag2._id:
-                        if ( ag1._id - ag2._id ) % self.n_type1 == k_iter:
-                            print('connecting %s to %s' %(ag1._id,ag2._id))
+                        if ( abs(ag1._id - ag2._id) ) % self.n_type1 == k_iter and ag1._id > ag2._id:
                             self.connections.append((ag1._id, ag2._id))
+                            break
             k_iter += 1
 
 
@@ -55,9 +54,10 @@ class K0Network():
         
     def construct(self, nodes):
         iter = 1
+        
         while iter < self.k:
             for i in range(self.n_nodes - 1): 
-                for j in range(i,self.n_nodes): 
+                for j in range(i+1,self.n_nodes): 
                     if abs( i - j ) % self.n_nodes == iter: 
                         self.connections.append((nodes[i],nodes[j]))
             
