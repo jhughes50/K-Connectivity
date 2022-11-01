@@ -12,7 +12,7 @@ class BarrierCertificates:
         
 class ConnectionCertificate(BarrierCertificates):
 
-    def __init__(self, r, s, g=1):
+    def __init__(self, r, s, dim, g=1):
 
         super().__init__()
         self.radius = r
@@ -20,6 +20,7 @@ class ConnectionCertificate(BarrierCertificates):
         self.n = len(s)
         self.A = np.zeros((self.n,self.n,3))
         self.b = None
+        self.dim = dim
         self.gamma = g
         
 
@@ -28,7 +29,7 @@ class ConnectionCertificate(BarrierCertificates):
         A = list()
         for ag in self.swarm[:-1]:
             for j in range(ag._id+1, self.n):
-                A_ij = np.zeros((self.n,3))
+                A_ij = np.zeros((self.n,self.dim))
                 if j in ag.connections:
                     #print(2 * (self.swarm[ag._id].location - self.swarm[j].location), ' row %s'%j)
                     A_ij[ag._id] = -2 * (self.swarm[ag._id].location -
@@ -57,7 +58,7 @@ class ConnectionCertificate(BarrierCertificates):
     
 class SafetyCertificate(BarrierCertificates):
 
-    def __init__(self, r, s, g=1):
+    def __init__(self, r, s, dim, g=1):
 
         super().__init__()
         self.radius = r
@@ -65,13 +66,14 @@ class SafetyCertificate(BarrierCertificates):
         self.n = len(s)
         self.A = np.zeros((self.n,self.n,3))
         self.gamma = g
+        self.dim = dim
         self.b = None
         
     def construct_A(self):
         A = list()
         for i in range(self.n-1):
             for j in range(i+1,self.n):
-                A_ij = np.zeros((self.n,3))
+                A_ij = np.zeros((self.n,self.dim))
                 A_ij[i] = -2 * (self.swarm[i].location -
                                      self.swarm[j].location) * self.swarm[i].desired_control
                 A_ij[j] = 2 * (self.swarm[i].location -

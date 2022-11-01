@@ -26,7 +26,8 @@ class Simulation(Node):
         self.num_agents = self.type0 + self.type1
         self.r_conn = 25
         self.r_safety = 1
-
+        self.dim = 2
+        
         assert self.num_agents == (self.type0 + self.type1)
 
         self.k0 = 2
@@ -38,11 +39,11 @@ class Simulation(Node):
 
         self.control_magnitude = 1 #move at 1 m/s
         
-        self.env = {0:np.array((150,100,0)),
-                         1: np.array((75,100,0)),
-                         2: np.array((25,200,0))}
+        self.env = {0:np.array((150,100)),
+                         1: np.array((75,100)),
+                         2: np.array((25,200))}
 
-        self.locations = np.array((1,1,1)) 
+        self.locations = np.array((1,1)) 
         self.swarm_control = None
         
         self.swarm = list()
@@ -57,13 +58,13 @@ class Simulation(Node):
         for i in range(self.type0):
             
             self.swarm.append( Agent(i,
-                                     np.append(1.0*np.random.randint(0,5,size=2), np.array((0))),
+                                     1.0*np.random.randint(0,5,size=2),
                                      self.env[random.randint(0,2)],
                                      0) )
         # add layer 2 agents to swarm 
         for i in range(self.type1):
             self.swarm.append( Agent(i+self.type0,
-                                     np.append(1.0*np.random.randint(0,5,size=2),np.array((1))),
+                                     1.0*np.random.randint(0,5,size=2),
                                      self.env[random.randint(0,2)],
                                      1) )
         # initialize the clusters 
@@ -108,7 +109,7 @@ class Simulation(Node):
         control_vector = np.zeros((1,3))
         for ag in self.swarm:
             theta = math.atan2(ag.location[1],ag.location[0]) - math.atan2(self.env[ag.task][1], self.env[ag.task][0])
-            control_vector[0] = self.magnitude * math.cos(theta)
+            control_vectorq[0] = self.magnitude * math.cos(theta)
             control_vector[1] = self.magnitude * math.sin(theta)
 
             ag.set_desired_control(control_vector)
@@ -123,7 +124,7 @@ class Simulation(Node):
 
     def optimize(self, Bs, Bc):
 
-        u0 = 0.0 * np.ones(3*self.num_agents)
+        u0 = 0.0 * np.ones(self.dim*self.num_agents)
         
         func = lambda u : np.sum( np.linalg.norm(u - self.swarm_control)**2 )
         cons = ({'type': 'ineq', 'fun': lambda u: Bs.b - np.matmul(Bs.A,u.T)},
@@ -133,17 +134,18 @@ class Simulation(Node):
         #cons = ({'type': 'ineq', 'fun': lambda u: np.matmul(Bc.A,u.T) - Bc.b})
         
         res = minimize(func, u0, method='SLSQP', constraints=cons)
-        return np.reshape(res.x,(self.num_agents,3))
+        return np.reshape(res.x,(self.num_agents,self.dim))
 
     def cycle(self):
 
-        Bs = SafetyCertificate(self.r_safety, self.swarm, 0.1)
-        Bc = ConnectionCertificate(self.r_conn, self.swarm, 0.1)
+        Bs = SafetyCertificate(self.r_safety, self.swarm, self.dim, 0.1)
+        Bc = ConnectionCertificate(self.r_conn, self.swarm, self.dim, 0.1)
 
         cycle_iter = 0
         
         while rclpy.ok():
 
+            print(self.swarm[1])
             labels, centroids = self.cluster()
 
             for iter, ag in enumerate( self.swarm[:self.type0] ):
@@ -184,7 +186,7 @@ class Simulation(Node):
             else:
                 cycle_iter += 1
                 if cycle_iter%10 == 0:
-                    plot3D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
+                    #plot3D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
                     plot2D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
                 sleep(0.1)
 

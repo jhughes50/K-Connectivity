@@ -43,14 +43,13 @@ def plot2D(locs, tasks, i, conns, swarm):
     for loc in locs:
         loc_x.append(loc[0])
         loc_y.append(loc[1])
-        loc_z.append(loc[2])
+
 
     tsk_x,tsk_y,tsk_z = [],[],[]
 
     for t in tasks.values():
         tsk_x.append(t[0])
         tsk_y.append(t[1])
-        tsk_z.append(t[2])
 
     con_x, con_y = [], []
 

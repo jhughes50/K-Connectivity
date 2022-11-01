@@ -35,10 +35,10 @@ class Agent:
                 self.connections.append( conn[0] )
 
     def set_desired_control(self, magnitude: float):
-        control_vector = np.zeros((1,3))[0]
-        v = self.task[:-1] - self.location[:-1]
+        control_vector = np.zeros((1,2))[0]
+        v = self.task - self.location
         v = v/np.linalg.norm(v)
-        
+
         control_vector[0] = magnitude * v[0]
         control_vector[1] = magnitude * v[1]
         
