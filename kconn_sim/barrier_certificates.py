@@ -32,9 +32,9 @@ class ConnectionCertificate(BarrierCertificates):
                 A_ij = np.zeros((self.n,self.dim))
                 if j in ag.connections:
                     #print(2 * (self.swarm[ag._id].location - self.swarm[j].location), ' row %s'%j)
-                    A_ij[ag._id] = -2 * (self.swarm[ag._id].location -
+                    A_ij[ag._id] = 0.1*(self.swarm[ag._id].location -
                                          self.swarm[j].location) 
-                    A_ij[j] = 2 * (self.swarm[ag._id].location -
+                    A_ij[j] = -0.1*(self.swarm[ag._id].location -
                                       self.swarm[j].location) 
                 A.append(A_ij.flatten())
         self.A = np.array(A)

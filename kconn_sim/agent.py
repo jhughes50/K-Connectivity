@@ -3,11 +3,12 @@ import math
 
 class Agent:
 
-    def __init__(self, iden, location, task, agent_type):
+    def __init__(self, iden, location, task, t_index, agent_type):
 
         self._id = iden
         self.location = location
         self.task = task
+        self.task_index = t_index
         self.agent_type = agent_type
         self.cluster = None
         self.connections = list()
@@ -34,15 +35,16 @@ class Agent:
             elif conn[1] == self._id:
                 self.connections.append( conn[0] )
 
-    def set_desired_control(self, magnitude: float):
+    def set_desired_control(self, magnitude: float, t_dict: dict):
         control_vector = np.zeros((1,2))[0]
         v = self.task - self.location
+        #print('v: ',v)
         v = v/np.linalg.norm(v)
 
         control_vector[0] = magnitude * v[0]
         control_vector[1] = magnitude * v[1]
         
-        self.desired_control = control_vector
+        self.desired_control = v#control_vector
 
     def update_location(self, u):
         #norm_u = u/np.sum(u)

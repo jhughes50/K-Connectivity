@@ -11,6 +11,7 @@ from kconn_sim.agent import Agent
 from kconn_sim.cluster import Cluster
 from kconn_sim.network import K0Network, Network
 from kconn_sim.plotting import *
+from kconn_sim.checks import *
 from time import sleep
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
@@ -21,11 +22,11 @@ class Simulation(Node):
 
         super().__init__('MultiAgentSim')
 
-        self.type0 = 5
-        self.type1 = 1
+        self.type0 = 15
+        self.type1 = 5
         self.num_agents = self.type0 + self.type1
-        self.r_conn = 25
-        self.r_safety = 1
+        self.r_conn = 50
+        self.r_safety = 5
         self.dim = 2
         
         assert self.num_agents == (self.type0 + self.type1)
@@ -35,16 +36,15 @@ class Simulation(Node):
 
         self.alpha = 1
 
-        self.n_clust = self.type1
+        self.n_clust = 1#self.type1
 
         self.control_magnitude = 1 #move at 1 m/s
         
-        self.env = {0:np.array((150,100)),
-                         1: np.array((75,100)),
-                         2: np.array((25,200))}
+        self.env = np.array([[75,200],[175,100],[125,150]])
 
         self.locations = np.array((1,1)) 
         self.swarm_control = None
+        self.conn_vec = None
         
         self.swarm = list()
         self.clusters = list()
@@ -56,16 +56,19 @@ class Simulation(Node):
     def __init_swarm__(self):
         # add layer1 agents to swarm
         for i in range(self.type0):
-            
+            env_i = random.randint(0,len(self.env)-1)
             self.swarm.append( Agent(i,
                                      1.0*np.random.randint(0,5,size=2),
-                                     self.env[random.randint(0,2)],
+                                     self.env[env_i],
+                                     env_i,
                                      0) )
         # add layer 2 agents to swarm 
         for i in range(self.type1):
+            env_i = random.randint(0,len(self.env)-1)
             self.swarm.append( Agent(i+self.type0,
                                      1.0*np.random.randint(0,5,size=2),
-                                     self.env[random.randint(0,2)],
+                                     self.env[env_i],
+                                     env_i,
                                      1) )
         # initialize the clusters 
         for i in range(self.n_clust):
@@ -80,6 +83,7 @@ class Simulation(Node):
             locs.append(ag.location)
 
         self.locations =  np.array(locs)
+
         
     def cluster(self):
 
@@ -93,6 +97,7 @@ class Simulation(Node):
 
         return km.labels_, km.cluster_centers_
 
+    
     def matching(self, centroids):
         # TODO: make this resistant if type0/type1 is not int -- DONE
 
@@ -105,6 +110,7 @@ class Simulation(Node):
         for cluster in self.clusters:
             cluster.add_members( self.swarm[self.type0:] )
 
+            
     def calc_control_vector(self):
         control_vector = np.zeros((1,3))
         for ag in self.swarm:
@@ -114,6 +120,7 @@ class Simulation(Node):
 
             ag.set_desired_control(control_vector)
 
+            
     def set_swarm_control(self):
         for ag in self.swarm:
             u = ag.desired_control
@@ -122,20 +129,54 @@ class Simulation(Node):
             else:
                 self.swarm_control = np.concatenate((self.swarm_control,u), axis=None)
 
+                
+    def conn_matrix(self):
+        l = list()
+        for i in range(self.num_agents-1):
+            for j in range(i+1, self.num_agents):
+                if j in self.swarm[i].connections:
+                    l.append(1)
+                else:
+                    l.append(0)
+        self.conn_vec = np.array(l)
+
+        
+    def connection_constraint(self, u):
+        # u is a flattened n-by-2 array, thus 2n-by-1
+        res = list()
+        u = np.reshape(u,(self.num_agents, self.dim))
+
+        for i in range(self.num_agents-1):
+            for j in range(i+1,self.num_agents):
+                d = math.dist(self.locations[i] + u[i],
+                          self.locations[j] + u[j])
+                res.append(self.r_conn - d)
+        return np.array(res)*self.conn_vec
+
+    
+    def safety_constraint(self, u):
+        res = list()
+        u = np.reshape(u,(self.num_agents,self.dim))
+        for i in range(self.num_agents-1):
+            for j in range(i+1, self.num_agents):
+                d = math.dist(self.locations[i]+u[i], self.locations[j]+u[j])
+                res.append(d - self.r_safety)
+        return np.array(res)
+    
+                
     def optimize(self, Bs, Bc):
 
         u0 = 0.0 * np.ones(self.dim*self.num_agents)
         
         func = lambda u : np.sum( np.linalg.norm(u - self.swarm_control)**2 )
-        cons = ({'type': 'ineq', 'fun': lambda u: Bs.b - np.matmul(Bs.A,u.T)},
-                {'type': 'ineq', 'fun': lambda u: np.matmul(Bc.A,u.T) - Bc.b},
-                {'type': 'ineq', 'fun': lambda u: self.alpha - np.linalg.norm(u)},
-                {'type': 'ineq', 'fun': lambda u: np.linalg.norm(u) + self.alpha})  
-        #cons = ({'type': 'ineq', 'fun': lambda u: np.matmul(Bc.A,u.T) - Bc.b})
+        
+        cons = ({'type': 'ineq', 'fun': self.connection_constraint},
+                {'type': 'ineq', 'fun': self.safety_constraint})
         
         res = minimize(func, u0, method='SLSQP', constraints=cons)
         return np.reshape(res.x,(self.num_agents,self.dim))
 
+    
     def cycle(self):
 
         Bs = SafetyCertificate(self.r_safety, self.swarm, self.dim, 0.1)
@@ -145,7 +186,6 @@ class Simulation(Node):
         
         while rclpy.ok():
 
-            print(self.swarm[1])
             labels, centroids = self.cluster()
 
             for iter, ag in enumerate( self.swarm[:self.type0] ):
@@ -166,22 +206,19 @@ class Simulation(Node):
             
             for ag in self.swarm:
                 ag.set_connections(net.connections)
-                ag.set_desired_control(float(self.control_magnitude))
-                
-            Bs.construct_A()
-            Bs.construct_b()
-            Bc.construct_A()
-            Bc.construct_b()
+                ag.set_desired_control(float(self.control_magnitude),self.env)
             
             self.set_swarm_control()
-            
+            self.conn_matrix()
+
             u_star = self.optimize(Bs,Bc)
-            #print(u_star)
+        
             for ag in self.swarm:
                 ag.update_location(u_star[ag._id])
+                check_destination(ag, self.env)
                 print(ag)
 
-            if cycle_iter == 200:
+            if cycle_iter == 600:
                 break
             else:
                 cycle_iter += 1

@@ -47,7 +47,7 @@ def plot2D(locs, tasks, i, conns, swarm):
 
     tsk_x,tsk_y,tsk_z = [],[],[]
 
-    for t in tasks.values():
+    for t in tasks:
         tsk_x.append(t[0])
         tsk_y.append(t[1])
 
@@ -59,10 +59,20 @@ def plot2D(locs, tasks, i, conns, swarm):
         con_y.append( swarm[c[0]].location[1] )
         con_x.append( swarm[c[1]].location[0] )
         con_y.append( swarm[c[1]].location[1] )
-        plt.plot(con_x,con_y,'bo',linestyle="--")
+        plt.plot(con_x,con_y,'bo',linestyle="--",zorder=1)
+
+    t2_x, t2_y = [], []
+    for ag in swarm:
+        if ag.agent_type == 1:
+            t2_x.append(ag.location[0])
+            t2_y.append(ag.location[1])
+    
         
     #plt.scatter(loc_x,loc_y)
-    plt.scatter(tsk_x,tsk_y)
+    plt.scatter(tsk_x,tsk_y,c='k',zorder=2)
+    plt.scatter(t2_x,t2_y, c='r',zorder=3)
+    plt.xlim([0,200])
+    plt.ylim([0,225])
     #plt.show()
     plt.savefig('swarm2D_t_'+str(i)+'.png')
     plt.clf()
