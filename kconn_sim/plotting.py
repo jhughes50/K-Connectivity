@@ -74,5 +74,5 @@ def plot2D(locs, tasks, i, conns, swarm):
     plt.xlim([0,200])
     plt.ylim([0,225])
     #plt.show()
-    plt.savefig('swarm2D_t_'+str(i)+'.png')
+    plt.savefig('images1/swarm2D_t_'+str(i)+'.png')
     plt.clf()

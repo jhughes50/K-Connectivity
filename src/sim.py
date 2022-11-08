@@ -23,7 +23,7 @@ class Simulation(Node):
         super().__init__('MultiAgentSim')
 
         self.type0 = 15
-        self.type1 = 5
+        self.type1 = 3
         self.num_agents = self.type0 + self.type1
         self.r_conn = 50
         self.r_safety = 5
@@ -36,7 +36,7 @@ class Simulation(Node):
 
         self.alpha = 1
 
-        self.n_clust = 1#self.type1
+        self.n_clust = self.type1
 
         self.control_magnitude = 1 #move at 1 m/s
         
@@ -104,7 +104,7 @@ class Simulation(Node):
         W = cdist(self.locations[self.type0:],centroids, 'euclidean')
         
         for iter, ag in enumerate(self.swarm[self.type0:]):
-            ag.cluster = np.argmin(W[iter])
+            ag.cluster = ag.task_index # np.argmin(W[iter])
             W[:,ag.cluster] = np.inf
         
         for cluster in self.clusters:
@@ -189,7 +189,7 @@ class Simulation(Node):
             labels, centroids = self.cluster()
 
             for iter, ag in enumerate( self.swarm[:self.type0] ):
-                ag.cluster = labels[iter]
+                ag.cluster = ag.task_index #labels[iter]
 
             for cluster in self.clusters:
                 cluster.set_members( self.swarm,self.type0 )
@@ -202,7 +202,7 @@ class Simulation(Node):
             k0net = K0Network(self.clusters, self.k0)
 
             net = Network(self.clusters, self.swarm, k0net, self.k0, self.k1, self.type0, self.type1)
-            #net.connect()
+            net.connect()
             
             for ag in self.swarm:
                 ag.set_connections(net.connections)
@@ -215,10 +215,11 @@ class Simulation(Node):
         
             for ag in self.swarm:
                 ag.update_location(u_star[ag._id])
-                check_destination(ag, self.env)
+                #check_destination(ag, self.env)
+                check_vector(ag)
                 print(ag)
 
-            if cycle_iter == 600:
+            if cycle_iter == 1000:
                 break
             else:
                 cycle_iter += 1

@@ -13,7 +13,10 @@ def check_destination(agent, tasks):
             agent.task_index = agent.task_index + 1
 
 
+def check_vector(agent):
 
+    if math.dist( agent.location, agent.task ) < 10:
+        agent.desired_control = np.array([0.,0.])
 
 
 
