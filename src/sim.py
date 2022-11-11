@@ -22,8 +22,8 @@ class Simulation(Node):
 
         super().__init__('MultiAgentSim')
 
-        self.type0 = 15
-        self.type1 = 3
+        self.type0 = 25
+        self.type1 = 7
         self.num_agents = self.type0 + self.type1
         self.r_conn = 50
         self.r_safety = 5
@@ -36,12 +36,12 @@ class Simulation(Node):
 
         self.alpha = 1
 
-        self.n_clust = self.type1
-
         self.control_magnitude = 1 #move at 1 m/s
         
-        self.env = np.array([[75,200],[175,100],[125,150]])
+        self.env = np.array([[10,200],[175,10],[75,300],[25,20]])
 
+        self.n_clust = len(self.env)
+        
         self.locations = np.array((1,1)) 
         self.swarm_control = None
         self.conn_vec = None
@@ -224,10 +224,12 @@ class Simulation(Node):
             else:
                 cycle_iter += 1
                 if cycle_iter%10 == 0:
-                    #plot3D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
+                    plot3D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
                     plot2D(self.locations,self.env, cycle_iter,net.connections, self.swarm)
                 sleep(0.1)
-
+        for cl in self.clusters:
+            print("task %s: "%(str(cl.cluster_id)), len(cl))
+        print("Num Connections: ",len(net.connections))
             
 if __name__ == "__main__":
     rclpy.init()
