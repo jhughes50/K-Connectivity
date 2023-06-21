@@ -4,17 +4,22 @@ import math
 import rclpy
 import random
 import numpy as np
+
 from scipy.optimize import minimize, rosen, rosen_der, LinearConstraint
 from rclpy.node import Node
+
 from kconn_sim.barrier_certificates import SafetyCertificate, ConnectionCertificate
 from kconn_sim.agent import Agent
 from kconn_sim.cluster import Cluster
 from kconn_sim.network import K0Network, Network
 from kconn_sim.plotting import *
 from kconn_sim.checks import *
+
 from time import sleep
+
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
+
 
 class Simulation(Node):
 
@@ -22,8 +27,8 @@ class Simulation(Node):
 
         super().__init__('MultiAgentSim')
 
-        self.type0 = 25
-        self.type1 = 7
+        self.type0 = 15
+        self.type1 = 5
         self.num_agents = self.type0 + self.type1
         self.r_conn = 50
         self.r_safety = 5
@@ -31,14 +36,14 @@ class Simulation(Node):
         
         assert self.num_agents == (self.type0 + self.type1)
 
-        self.k0 = 2
-        self.k1 = 3
+        self.k0 = 3
+        self.k1 = 4
 
         self.alpha = 1
 
         self.control_magnitude = 1 #move at 1 m/s
         
-        self.env = np.array([[10,200],[175,10],[75,300],[25,20]])
+        self.env = np.array([[10,200],[175,10]])#,[75,300],[25,20]])
 
         self.n_clust = len(self.env)
         
@@ -202,7 +207,7 @@ class Simulation(Node):
             k0net = K0Network(self.clusters, self.k0)
 
             net = Network(self.clusters, self.swarm, k0net, self.k0, self.k1, self.type0, self.type1)
-            net.connect()
+            #net.connect()
             
             for ag in self.swarm:
                 ag.set_connections(net.connections)
@@ -219,7 +224,7 @@ class Simulation(Node):
                 check_vector(ag)
                 print(ag)
 
-            if cycle_iter == 1000:
+            if cycle_iter == 2000:
                 break
             else:
                 cycle_iter += 1
@@ -235,3 +240,5 @@ if __name__ == "__main__":
     rclpy.init()
 
     Simulation()
+
+    

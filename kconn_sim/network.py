@@ -55,7 +55,7 @@ class K0Network():
     def construct(self, nodes):
         iter = 1
         
-        while iter < self.k:
+        while iter <= self.k:
             for i in range(self.n_nodes - 1): 
                 for j in range(i+1,self.n_nodes): 
                     if abs( i - j ) % self.n_nodes == iter: 
