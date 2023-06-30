@@ -25,7 +25,15 @@ class Agent:
                   "\n"
                  )
         return output
-    
+
+    @property
+    def location(self):
+        return self.location
+
+    @setter.location
+    def location(self, l):
+        self.location = l
+
     def set_connections(self, conns):
         """ add the nodes this agent is connected to to a list """
         self.connections.clear()

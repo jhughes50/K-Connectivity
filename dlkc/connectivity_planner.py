@@ -124,4 +124,15 @@ class ConnectivityPlanner:
 
         return np.array(res)
 
+    def optimize(self, Bs, Bc, control):
+
+        u0 = 0.0 * np.ones(self.dim*self.num_agents)
+        
+        func = lambda u : np.sum( np.linalg.norm(u - control)**2 )
+        
+        cons = ({'type': 'ineq', 'fun': self.connection_constraint},
+                {'type': 'ineq', 'fun': self.safety_constraint})
+        
+        res = minimize(func, u0, method='SLSQP', constraints=cons)
+        return np.reshape(res.x,(self.num_agents,self.dim))
     
