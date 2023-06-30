@@ -1,0 +1,4 @@
+AgentConnectivity:
+  ros__parameters:
+    alpha: 1.0
+    magnitiude: 1.0

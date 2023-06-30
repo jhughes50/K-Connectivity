@@ -6,12 +6,12 @@ import random
 import numpy as np
 from scipy.optimize import minimize, rosen, rosen_der, LinearConstraint
 from rclpy.node import Node
-from kconn_sim.barrier_certificates import SafetyCertificate, ConnectionCertificate
-from kconn_sim.agent import Agent
-from kconn_sim.cluster import Cluster
-from kconn_sim.network import K0Network, Network
-from kconn_sim.plotting import *
-from kconn_sim.checks import *
+from dlkc.barrier_certificates import SafetyCertificate, ConnectionCertificate
+from dlkc.agent import Agent
+from dlkc.cluster import Cluster
+from dlkc.network import K0Network, Network
+from dlkc.plotting import *
+from dlkc.checks import *
 from geometry_msgs.msg import Twist
 from time import sleep
 from sklearn.cluster import KMeans
