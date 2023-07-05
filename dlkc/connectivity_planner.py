@@ -99,30 +99,6 @@ class ConnectivityPlanner:
         assert len(v) == self.num_agents_
         self.connectivity_vector_ = v
         
-       
-    def connection_constraint(self, u):
-        res = list()
-        u = np.reshape(u,(self.num_agents_, self.dimension_))
-
-        for i in range(self.num_agents_-1):
-            for j in range(i+1,self.num_agents_):
-                d = math.dist(self.locations_[i] + u[i],
-                          self.locations_[j] + u[j])
-                res.append(self.connectivity_radius - d)
-                
-        return np.array(res)*self.connectivity_vector
-
-    
-    def safety_constraint(self, u):
-        res = list()
-        u = np.reshape(u,(self.num_agents_,self.dimension_))
-
-        for i in range(self.num_agents_-1):
-            for j in range(i+1, self.num_agents_):
-                d = math.dist(self.locations_[i]+u[i], self.locations_[j]+u[j])
-                res.append(d - self.safety_radius_)
-
-        return np.array(res)
 
     def optimize(self, Bs, Bc, control):
 
@@ -130,8 +106,8 @@ class ConnectivityPlanner:
         
         func = lambda u : np.sum( np.linalg.norm(u - control)**2 )
         
-        cons = ({'type': 'ineq', 'fun': self.connection_constraint},
-                {'type': 'ineq', 'fun': self.safety_constraint})
+        cons = ({'type': 'ineq', 'fun': Bc.connectivityConstraint},
+                {'type': 'ineq', 'fun': Bs.safetyConstraint})
         
         res = minimize(func, u0, method='SLSQP', constraints=cons)
         return np.reshape(res.x,(self.num_agents,self.dim))

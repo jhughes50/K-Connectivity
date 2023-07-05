@@ -1,97 +1,64 @@
 import numpy as np
+import math
 
-class BarrierCertificates:
 
-    def __init__(self):
-        pass
+class BarrierCertificate:
+    """ parent class to both the safety and connectivity barrier certificates """
+    def __init__(self, locs, n, dim):
+        self.locs_ = locs
+        self.n_ = n
+        self.dim_ = dim
 
-    def dist(self, x, y):
-        return np.linalg.norm(x - y)**2
-    
-       
         
-class ConnectionCertificate(BarrierCertificates):
+    def getResidual(self, u):
+        res = list()
+        u = np.reshape(u,(self.n_,self.dim_))
 
-    def __init__(self, r, s, dim, g=1):
-
-        super().__init__()
-        self.radius = r
-        self.swarm = s
-        self.n = len(s)
-        self.A = np.zeros((self.n,self.n,3))
-        self.b = None
-        self.dim = dim
-        self.gamma = g
-        
-
-    def construct_A(self):
-
-        A = list()
-        for ag in self.swarm[:-1]:
-            for j in range(ag._id+1, self.n):
-                A_ij = np.zeros((self.n,self.dim))
-                if j in ag.connections:
-                    #print(2 * (self.swarm[ag._id].location - self.swarm[j].location), ' row %s'%j)
-                    A_ij[ag._id] = 0.1*(self.swarm[ag._id].location -
-                                         self.swarm[j].location) 
-                    A_ij[j] = -0.1*(self.swarm[ag._id].location -
-                                      self.swarm[j].location) 
-                A.append(A_ij.flatten())
-        self.A = np.array(A)
-
-            
-    def construct_b(self):
-        b_ij = list()
-        for ag in self.swarm:
-            for j in range(ag._id+1, self.n):
-                if j in ag.connections:
-                    b_ij.append( self.get_b(ag._id,j) )
-                else:
-                    b_ij.append( 0. )
-        self.b = np.array(b_ij)
-        
-    def get_b(self, i, j):
-        return self.gamma * (self.radius**2 -
-                             self.dist(self.swarm[i].location, self.swarm[j].location))
-
-
-    
-class SafetyCertificate(BarrierCertificates):
-
-    def __init__(self, r, s, dim, g=1):
-
-        super().__init__()
-        self.radius = r
-        self.swarm = s
-        self.n = len(s)
-        self.A = np.zeros((self.n,self.n,3))
-        self.gamma = g
-        self.dim = dim
-        self.b = None
-        
-    def construct_A(self):
-        A = list()
-        for i in range(self.n-1):
-            for j in range(i+1,self.n):
-                A_ij = np.zeros((self.n,self.dim))
-                A_ij[i] = -2 * (self.swarm[i].location -
-                                     self.swarm[j].location) * self.swarm[i].desired_control
-                A_ij[j] = 2 * (self.swarm[i].location -
-                                    self.swarm[j].location) * self.swarm[j].desired_control
-                #print(A_ij.flatten())
-                A.append(A_ij.flatten())
-
-        self.A = np.array(A)
+        for i in range(self.n_-1):
+            for j in range(i+1, self.n_):
+                d = math.dist(l[i]+u[i], l[j]+u[j])
+                res.append(d)
                 
-    def get_b(self, i, j):
-        return self.gamma * (self.dist(self.swarm[i].location, self.swarm[j].location) - self.radius**2)
+        return np.array(res)
 
-    def construct_b(self):
-        b_ij = list()
-        for i in range(self.n-1):
-            for j in range(i+1, self.n):
-                b_ij.append(self.get_b(i,j))
-        self.b = np.array(b_ij)
+    @property
+    def locs(self):
+        return self.locs_
+    
+    @locs.setter
+    def locs(self, l):
+        self.locs_ = l
+    
+    
+class ConnectionCertificate(BarrierCertificate):
+
+    def __init__(self, locs, n, dim, radius, vec):
+
+        super().__init__(locs, n, dim)
+        self.radius_ = radius
+        self.n_ = n
+        self.dim_ = dim
+        self.conn_vec_ = vec
         
+        
+    def connectionConstraint(self, u):
+        res = self.getResidual(u)
+        res = self.radius_ - res
+        return res*self.conn_vec_
+                                 
+    
+class SafetyCertificate(BarrierCertificate):
+
+    def __init__(self, locs, n, dim, radius):
+
+        super().__init__(locs, n, dim)
+        self.radius_ = radius
+        self.n_ = n
+        self.dim_ = dim
+
+
+    def safetyConstraint(self, u):
+        res = self.getResidual(u)
+        return res - self.radius_
         
         

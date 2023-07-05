@@ -30,7 +30,7 @@ class Agent:
     def location(self):
         return self.location
 
-    @setter.location
+    @location.setter
     def location(self, l):
         self.location = l
 

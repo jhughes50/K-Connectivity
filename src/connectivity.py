@@ -6,6 +6,7 @@ import random
 import numpy as np
 from scipy.optimize import minimize, rosen, rosen_der, LinearConstraint
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from dlkc.barrier_certificates import SafetyCertificate, ConnectionCertificate
 from dlkc.agent import Agent
 from dlkc.cluster import Cluster
@@ -21,7 +22,7 @@ from scipy.spatial.distance import cdist
 class AgentConnectivity(Node):
 
     def __init__(self):
-        super().init('AgentConnectivity')
+        super().__init__('AgentConnectivity')
 
         # set QoS standard
         qos = QoSProfile(reliability = QoSReliabilityPolicy.BEST_EFFORT,
@@ -32,10 +33,11 @@ class AgentConnectivity(Node):
         # declare and get parmeters
         self.declare_parameter("sys_id", rclpy.Parameter.Type.INTEGER)
         self.declare_parameter("level", rclpy.Parameter.Type.INTEGER)
-        self.declare_parameter("alpha", rclpy.Parameter.Type.INTEGER)
-        self.declare_parameter("magnititude", rclpy.Parameter.Type.INTEGER)
+        self.declare_parameter("alpha", rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter("magnitude", rclpy.Parameter.Type.DOUBLE)
         self.declare_parameter("safety_radius", rclpy.Parameter.Type.DOUBLE)
         self.declare_parameter("connection_radius", rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter("dimension", rclpy.Parameter.Type.INTEGER)
         
         self.sys_id_ = self.get_parameter("sys_id").value
         self.level_ = self.get_parameter("level").value
@@ -43,15 +45,18 @@ class AgentConnectivity(Node):
         self.magnitude_ = self.get_parameter("magnitude").value
         self.safety_radius_ = self.get_parameter("safety_radius").value
         self.conn_radius_ = self.get_parameter("connection_radius").value
+        self.dim_ = self.get_parameter("dimension").value
         
         self.control_vector_ = np.array((0,0))
+        self.connection_vector_ = np.array((0,0))
 
-        self.control_vec_pub_ = self.create_publsiher(Twist,
+        self.control_vec_pub_ = self.create_publisher(Twist,
                                                       "kconn/control",
                                                       qos)
 
         self.system_dict_ = dict()
-        self.system_list_ = list()
+        self.system_locations_ = list()
+        self.num_agents_ = 0
         
         topic_namespace = "casa"+str(self.sys_id_)
 
@@ -61,9 +66,17 @@ class AgentConnectivity(Node):
         
         self.timer_ = self.create_timer(1.0, self.cycleCallback)
         
-        self.safety_barrier_ = SafetyCertificate(self.safety_radius_, list(self.system_dict_.values()), self.dim, 0.1)
-        self.conn_barrier_ = ConnectionCertificate(self.conn_radius), list(self.system_dict_.values()), self.dim, 0.1)
-
+        self.connectivity_certificate_ = ConnectionCertificate(self.system_locations_,
+                                                               self.num_agents_,
+                                                               self.dim_,
+                                                               self.conn_radius_,
+                                                               self.connection_vector_
+                                                               ) 
+        self.safety_certificate_ = SafetyCertificate(self.system_locations_,
+                                                     self.num_agents_,
+                                                     self.dim_,
+                                                     self.safety_radius_)
+        
         
     def agentArrayCallback(self, msg):
         #array msg callback
@@ -75,10 +88,17 @@ class AgentConnectivity(Node):
                                                      ag.assigned_task,
                                                      ag.connectivity_level)
             else:
-                self.system_dict_[ag.sys_id].location = location 
-    
+                self.system_dict_[ag.sys_id].location = location
+        self.num_agents_ = len(self.system_dict_)
+                                                               
+
+    def updateSystemLocations(self):
+        # function to update the location of all the agents in the swarm
+        self.system_locations_.clear()
+        for val in self.system_dict_.values():
+            self.system_locations_.append(val.location)
+            
     
     def cycleCallback(self):
-        # update planner constraints
-        # call the planner
-        pass
+        self.updateSystemLocations()
+        
