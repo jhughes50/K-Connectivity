@@ -51,6 +51,7 @@ class AgentConnectivity(Node):
                                                       qos)
 
         self.system_dict_ = dict()
+        self.system_list_ = list()
         
         topic_namespace = "casa"+str(self.sys_id_)
 
@@ -60,8 +61,8 @@ class AgentConnectivity(Node):
         
         self.timer_ = self.create_timer(1.0, self.cycleCallback)
         
-        #self.safety_barrier_ = SafetyCertificate(self.safety_radius_, self.swarm, self.dim, 0.1)
-        #self.conn_barrier_ = ConnectionCertificate(self.conn_radius), self.swarm, self.dim, 0.1)
+        self.safety_barrier_ = SafetyCertificate(self.safety_radius_, list(self.system_dict_.values()), self.dim, 0.1)
+        self.conn_barrier_ = ConnectionCertificate(self.conn_radius), list(self.system_dict_.values()), self.dim, 0.1)
 
         
     def agentArrayCallback(self, msg):
@@ -75,7 +76,7 @@ class AgentConnectivity(Node):
                                                      ag.connectivity_level)
             else:
                 self.system_dict_[ag.sys_id].location = location 
-                
+    
     
     def cycleCallback(self):
         # update planner constraints
