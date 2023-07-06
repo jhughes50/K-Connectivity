@@ -56,6 +56,10 @@ class AgentConnectivity(Node):
 
         self.system_dict_ = dict()
         self.system_locations_ = list()
+
+        self.system_type_0_ = dict()
+        self.system_type_1_ = dict()
+
         self.num_agents_ = 0
         
         topic_namespace = "casa"+str(self.sys_id_)
@@ -65,8 +69,12 @@ class AgentConnectivity(Node):
                                  qos)
         
         self.timer_ = self.create_timer(1.0, self.cycleCallback)
+
+        # these cant be called until agent array is populated
+        while self.num_agents_ == 0:
+            pass
         
-        self.connectivity_certificate_ = ConnectionCertificate(self.system_locations_,
+        self.connection_certificate_ = ConnectionCertificate(self.system_locations_,
                                                                self.num_agents_,
                                                                self.dim_,
                                                                self.conn_radius_,
@@ -82,13 +90,24 @@ class AgentConnectivity(Node):
         #array msg callback
         for ag in msg.agents:
             location = np.array((ag.local_pose.x, ag.local_pose.y))
-            if ag.sys_id not in list(self.system_dict_.keys()):
-                self.system_dict_[ag.sys_id] = Agent(ag.sys_id,
-                                                     ag.location,
-                                                     ag.assigned_task,
-                                                     ag.connectivity_level)
+            if ag.connectivity_level == 0:
+                if ag.sys_id not in list(self.system_dict_.keys()):
+                    self.system_type_0_[ag.sys_id] = Agent(ag.sys_id,
+                                                           ag.location,
+                                                           ag.assigned_task,
+                                                           ag.connectivity_level)
+                else:
+                    self.system_type_0_[ag.sys_id].location = location
             else:
-                self.system_dict_[ag.sys_id].location = location
+                if ag.sys_id not in list(self.system_dict_.keys()):
+                    self.system_type_1_[ag.sys_id] = Agent(ag.sys_id,
+                                                           ag.location,
+                                                           ag.assigned_task,
+                                                           ag.connectivity_level)
+                else:
+                    self.system_type_1_[ag.sys_id].location = location
+                    
+        self.system_dict_ = self.system_type_0_ | self.system_type_1_            
         self.num_agents_ = len(self.system_dict_)
                                                                
 
@@ -101,4 +120,14 @@ class AgentConnectivity(Node):
     
     def cycleCallback(self):
         self.updateSystemLocations()
-        
+        # also need to update the locations at the barrier certificates 
+
+        # TODO
+        # 1. cluster by task
+        # 2. initiate k0 network
+        # 3. initiate the whole network
+        # 4. connect the network
+        # 5. save the connections
+        # 6. set connections in a vector
+        # 7. optimize
+        # 8. interpret the output of the optimization
