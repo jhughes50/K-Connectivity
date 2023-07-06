@@ -99,16 +99,15 @@ class Agent:
             elif conn[1] == self.sys_id_:
                 self.connections_.append( conn[0] )
 
-    def calcDesiredControl(self, magnitude: float, t_dict: dict):
+    def calcDesiredControl(self, magnitude: float):
         control_vector = np.zeros((1,2))[0]
         v = self.task_pose_ - self.location_
-        #print('v: ',v)
         v = v/np.linalg.norm(v)
 
         control_vector[0] = magnitude * v[0]
         control_vector[1] = magnitude * v[1]
         
-        self.desired_control = v#control_vector
+        self.desired_control = control_vector
 
     def updateLocation(self, u):
         # FOR SIM ONLY

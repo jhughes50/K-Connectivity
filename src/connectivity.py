@@ -38,6 +38,8 @@ class AgentConnectivity(Node):
         self.declare_parameter("safety_radius", rclpy.Parameter.Type.DOUBLE)
         self.declare_parameter("connection_radius", rclpy.Parameter.Type.DOUBLE)
         self.declare_parameter("dimension", rclpy.Parameter.Type.INTEGER)
+        self.declare_parameter("level_0", rclpy.Parameter.Type.INTEGER)
+        self.declare_parameter("level_1", rclpy.Parameter.Type.INTEGER)
         
         self.sys_id_ = self.get_parameter("sys_id").value
         self.level_ = self.get_parameter("level").value
@@ -46,6 +48,10 @@ class AgentConnectivity(Node):
         self.safety_radius_ = self.get_parameter("safety_radius").value
         self.conn_radius_ = self.get_parameter("connection_radius").value
         self.dim_ = self.get_parameter("dimension").value
+        self.level_0_connectivity_ = self.get_parameter("level_0").value
+        self.level_1_connectivity_ = self.get_parameter("level_1").value
+
+        self.tasks_ = {1:[1,1], 2:[2,2]}
         
         self.control_vector_ = np.array((0,0))
         self.connection_vector_ = np.array((0,0))
@@ -56,13 +62,17 @@ class AgentConnectivity(Node):
 
         self.system_dict_ = dict()
         self.system_locations_ = list()
-
+        
         self.system_type_0_ = dict()
         self.system_type_1_ = dict()
+        self.system_type_0_locations_ = list()
+        self.system_type_1_locations_ = list()
 
         self.clusters_ = list()
-
+        self.centroids_ = dict()
+        
         self.num_agents_ = 0
+        self.num_clusters_ = len(self.tasks_)
         
         topic_namespace = "casa"+str(self.sys_id_)
 
@@ -86,7 +96,9 @@ class AgentConnectivity(Node):
                                                      self.num_agents_,
                                                      self.dim_,
                                                      self.safety_radius_)
-        
+        for i in range(self.num_clusters_):
+            self.clusters_.append(Cluster(i))
+            
         
     def agentArrayCallback(self, msg):
         #array msg callback
@@ -115,31 +127,55 @@ class AgentConnectivity(Node):
 
     def updateSystemLocations(self):
         # function to update the location of all the agents in the swarm
-        self.system_locations_.clear()
-        for val in self.system_dict_.values():
-            self.system_locations_.append(val.location)
-            
+        self.system_locations_ = list()
+        self.system_type_0_locations_ = list()
+        self.system_type_1_locations_ = list()
+        
+        for val in self.system_type_0_.values():
+            self.system_type_0_locations_.append(val.location)
+        for val in self.system_type_1_.values():
+            self.system_type_1_locations_.append(val.location)
 
+        self.system_type_0_locations_ = np.array(self.system_type_0_locations_)
+        self.system_type_1_locations_ = np.array(self.system_type_1_locations_)
+        self.system_locations_ = np.array(self.system_type_0_locations_ + self.system_type_1_locations_)
+
+        
     def clusterByTask(self):
-        for ag in self.system_type_0_.values():
+        for ag in self.system_dict_.values():
             ag.cluster = ag.task_index
-            
-            
+
+                
     def cycleCallback(self):
         self.updateSystemLocations()
         # also need to update the locations at the barrier certificates 
-
-        for ag in self.system_type_0_.values():
-            ag.cluster = a
         
         self.clusterByTask()
         
+        for cluster in self.clusters_:
+            cluster.setMembers(self.system_dict_.values())
+
+        level_0_network = K0Network(self.clusters_, self.level_0_connectivity_) 
+
+        full_network = Network(self.clusters_,
+                               self.system_dict.values(),
+                               level_0_network,
+                               self.level_0_connectivity_,
+                               self.levle_1_connectivity_,
+                               len(self.system_type_0_),
+                               len(self.system_type_1_)
+                               )
+
+        for ag in self.system_dict_.values():
+            ag.setConnections(full_network.connections)
+            ag.calcDesiredControl(self.magnitude_)
+        
         # TODO
-        # 1. cluster by task
-        # 2. initiate k0 network
-        # 3. initiate the whole network
-        # 4. connect the network
-        # 5. save the connections
+        # 1. cluster by task -- DONE
+        # 2. initiate k0 network -- DONE
+        # 3. initiate the whole network -- DONE
+        # 4. connect the network -- DONE
+        # 5. save the connections -- DONE
         # 6. set connections in a vector
         # 7. optimize
         # 8. interpret the output of the optimization

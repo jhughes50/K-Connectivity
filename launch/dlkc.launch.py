@@ -12,10 +12,6 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
-    #path = "../config/connectivity.yaml"
-    #with open(path,'r') as f:
-    #    config = yaml.safe_load(f)
-
     path = os.path.join(
         get_package_share_directory('dlkc'),
         'config',
@@ -26,7 +22,7 @@ def generate_launch_description():
         config = yaml.safe_load(f)
     
     params = config[list(config.keys())[0]]['ros__parameters']     
-    
+    print(params)
     node = Node(package = 'dlkc',
                 name = 'dlkc_node',
                 executable = 'connectivity_node.py',
