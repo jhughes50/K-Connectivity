@@ -60,6 +60,8 @@ class AgentConnectivity(Node):
         self.system_type_0_ = dict()
         self.system_type_1_ = dict()
 
+        self.clusters_ = list()
+
         self.num_agents_ = 0
         
         topic_namespace = "casa"+str(self.sys_id_)
@@ -117,11 +119,21 @@ class AgentConnectivity(Node):
         for val in self.system_dict_.values():
             self.system_locations_.append(val.location)
             
-    
+
+    def clusterByTask(self):
+        for ag in self.system_type_0_.values():
+            ag.cluster = ag.task_index
+            
+            
     def cycleCallback(self):
         self.updateSystemLocations()
         # also need to update the locations at the barrier certificates 
 
+        for ag in self.system_type_0_.values():
+            ag.cluster = a
+        
+        self.clusterByTask()
+        
         # TODO
         # 1. cluster by task
         # 2. initiate k0 network
