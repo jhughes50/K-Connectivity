@@ -9,6 +9,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from dlkc.barrier_certificates import SafetyCertificate, ConnectionCertificate
 from dlkc.agent import Agent
+from dlkc.connectivity_planner import ConnectivityPlanner
 from dlkc.cluster import Cluster
 from dlkc.network import K0Network, Network
 from dlkc.plotting import *
@@ -96,8 +97,12 @@ class AgentConnectivity(Node):
                                                      self.num_agents_,
                                                      self.dim_,
                                                      self.safety_radius_)
+        self.planner_ = ConnectivityPlanner(self.num_agents_,
+                                            self.dimensions_)
+        
         for i in range(self.num_clusters_):
             self.clusters_.append(Cluster(i))
+
             
         
     def agentArrayCallback(self, msg):
@@ -145,7 +150,18 @@ class AgentConnectivity(Node):
         for ag in self.system_dict_.values():
             ag.cluster = ag.task_index
 
-                
+            
+    def calcConnectionVector(self):
+        l = list()
+        for i in range(self.num_agents_-1):
+            for j in range(i+1, self.num_agents_):
+                if j in self.system_dict_[i].connections:
+                    l.append(1)
+                else:
+                    l.append(0)
+        return np.array(l)
+
+        
     def cycleCallback(self):
         self.updateSystemLocations()
         # also need to update the locations at the barrier certificates 
@@ -169,6 +185,13 @@ class AgentConnectivity(Node):
         for ag in self.system_dict_.values():
             ag.setConnections(full_network.connections)
             ag.calcDesiredControl(self.magnitude_)
+
+        self.connection_vector_ = self.calcConnectionVector()
+
+        self.planner_.locations = self.system_locations_
+        self.planner_.connection_vector = self.connection_vector_
+
+        u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_)
         
         # TODO
         # 1. cluster by task -- DONE
@@ -176,6 +199,6 @@ class AgentConnectivity(Node):
         # 3. initiate the whole network -- DONE
         # 4. connect the network -- DONE
         # 5. save the connections -- DONE
-        # 6. set connections in a vector
-        # 7. optimize
+        # 6. set connections in a vector -- DONE
+        # 7. optimize -- DONE
         # 8. interpret the output of the optimization
