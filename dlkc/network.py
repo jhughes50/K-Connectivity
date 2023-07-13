@@ -63,5 +63,6 @@ class K0Network():
             
             iter += 1
         # connect the last node to the first one
-        self.connections.append((nodes[0],nodes[self.n_nodes-1]))
+        if len(nodes) != 0:
+            self.connections.append((nodes[0],nodes[self.n_nodes-1]))
 

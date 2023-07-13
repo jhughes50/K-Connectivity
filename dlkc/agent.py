@@ -15,13 +15,13 @@ class Agent:
         self.desired_control_ = None 
         
     def __str__(self):
-        output =( "AGENT: %s\n"%self._id+
-                  "location: %s\n"%self.location+
-                  "task: %s\n"%self.task+
-                  "type: %s\n"%self.agent_type+
-                  "cluster: %s\n"%self.cluster+
-                  "connections: %s\n"%self.connections+
-                  "control: %s\n"%self.desired_control+
+        output =( "AGENT: %s\n"%self.sys_id_+
+                  "location: %s\n"%self.location_+
+                  "task: %s\n"%self.task_index_+
+                  "type: %s\n"%self.agent_type_+
+                  "cluster: %s\n"%self.cluster_+
+                  "connections: %s\n"%self.connections_+
+                  "control: %s\n"%self.desired_control_+
                   "\n"
                  )
         return output

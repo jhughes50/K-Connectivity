@@ -3,6 +3,7 @@ Author: Jason Hughes
 Date: June 2023
 About: Multi-Layer K-Connectivity planner
 """
+import numpy as np
 
 class ConnectivityPlanner:
 
@@ -38,7 +39,7 @@ class ConnectivityPlanner:
 
     @locations.setter
     def locations(self, l):
-        assert type(l) == type(np.array(1,1))
+        assert type(l) == type(np.array([1,1]))
         assert l.shape == (self.num_agents_, self.dimension_)
         self.locations_ = l
 

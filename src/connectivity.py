@@ -15,7 +15,7 @@ from dlkc.network import K0Network, Network
 from dlkc.plotting import *
 from dlkc.checks import *
 from casa_msgs.msg import CasaAgent, CasaAgentArray
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped, PoseStamped
 from time import sleep
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
@@ -41,9 +41,10 @@ class AgentConnectivity(Node):
         self.declare_parameter("dimension", rclpy.Parameter.Type.INTEGER)
         self.declare_parameter("level_0", rclpy.Parameter.Type.INTEGER)
         self.declare_parameter("level_1", rclpy.Parameter.Type.INTEGER)
+        self.declare_parameter("task", rclpy.Parameter.Type.INTEGER)
         
         self.sys_id_ = self.get_parameter("sys_id").value
-        self.level_ = self.get_parameter("level").value
+        self.my_level_ = self.get_parameter("level").value
         self.alpha_ = self.get_parameter("alpha").value
         self.magnitude_ = self.get_parameter("magnitude").value
         self.safety_radius_ = self.get_parameter("safety_radius").value
@@ -51,16 +52,22 @@ class AgentConnectivity(Node):
         self.dim_ = self.get_parameter("dimension").value
         self.level_0_connectivity_ = self.get_parameter("level_0").value
         self.level_1_connectivity_ = self.get_parameter("level_1").value
-
-        self.tasks_ = {1:[1,1], 2:[2,2]}
+        self.my_task_ = self.get_parameter("task").value
+        
+        self.tasks_ = {0:[1,1], 1:[2,2]}
         
         self.control_vector_ = np.array((0,0))
         self.connection_vector_ = np.array((0,0))
 
-        self.control_vec_pub_ = self.create_publisher(Twist,
-                                                      "kconn/control",
+        self.control_vec_pub_ = self.create_publisher(TwistStamped,
+                                                      "internal/goto_vel",
                                                       qos)
 
+        self.received_ = False
+        self.received_pose_ = False
+        
+        self.my_pose_ = np.array([])
+        
         self.system_dict_ = dict()
         self.system_locations_ = list()
         
@@ -80,12 +87,10 @@ class AgentConnectivity(Node):
         self.create_subscription(CasaAgentArray, topic_namespace+"/internal/system_array",
                                  self.agentArrayCallback,
                                  qos)
-        
+        self.create_subscription(PoseStamped, topic_namespace+"/internal/local_position",
+                                 self.localCallback, qos)
+                                 
         self.timer_ = self.create_timer(1.0, self.cycleCallback)
-
-        # these cant be called until agent array is populated
-        while self.num_agents_ == 0:
-            pass
         
         self.connection_certificate_ = ConnectionCertificate(self.system_locations_,
                                                                self.num_agents_,
@@ -98,21 +103,47 @@ class AgentConnectivity(Node):
                                                      self.dim_,
                                                      self.safety_radius_)
         self.planner_ = ConnectivityPlanner(self.num_agents_,
-                                            self.dimensions_)
+                                            self.dim_)
         
         for i in range(self.num_clusters_):
             self.clusters_.append(Cluster(i))
 
-            
+        if self.my_level_ == 0:
+            self.system_type_0_[self.sys_id_] = Agent(self.sys_id_,
+                                                      self.my_pose_,
+                                                      self.tasks_[self.my_task_],
+                                                      self.my_task_,
+                                                      self.my_level_)
+        elif self.my_level_ == 1:
+            self.system_type_1_[self.sys_id_] = Agent(self.sys_id_,
+                                                      self.my_pose_,
+                                                      self.tasks_[self.my_task_],
+                                                      self.my_task_,
+                                                      self.my_level_)
+        else:
+            self.get_logger().error("Input level was incorrect, must be 0 or 1")
+
+
+    def localCallback(self, msg):
+        self.received_pose_ = True
+        self.my_pose_ = np.array([msg.pose.position.x, msg.pose.position.y])
+
+        if self.my_level_ == 0:
+            self.system_type_0_[self.sys_id_].location = self.my_pose_
+        else:
+            self.system_type_1_[self.sys_id_].location = self.my_pose_
         
     def agentArrayCallback(self, msg):
         #array msg callback
+        self.get_logger().info("in callback")
+        self.received_ = True
         for ag in msg.agents:
             location = np.array((ag.local_pose.x, ag.local_pose.y))
             if ag.connectivity_level == 0:
                 if ag.sys_id not in list(self.system_dict_.keys()):
                     self.system_type_0_[ag.sys_id] = Agent(ag.sys_id,
-                                                           ag.location,
+                                                           location,
+                                                           self.tasks_[ag.assigned_task],
                                                            ag.assigned_task,
                                                            ag.connectivity_level)
                 else:
@@ -120,13 +151,14 @@ class AgentConnectivity(Node):
             else:
                 if ag.sys_id not in list(self.system_dict_.keys()):
                     self.system_type_1_[ag.sys_id] = Agent(ag.sys_id,
-                                                           ag.location,
+                                                           location,
+                                                           self.tasks_[ag.assigned_task],
                                                            ag.assigned_task,
                                                            ag.connectivity_level)
                 else:
                     self.system_type_1_[ag.sys_id].location = location
                     
-        self.system_dict_ = self.system_type_0_ | self.system_type_1_            
+        self.system_dict_ = self.system_type_0_ | self.system_type_1_
         self.num_agents_ = len(self.system_dict_)
                                                                
 
@@ -141,9 +173,12 @@ class AgentConnectivity(Node):
         for val in self.system_type_1_.values():
             self.system_type_1_locations_.append(val.location)
 
+        total_locations = self.system_type_0_locations_ + self.system_type_1_locations_
+
         self.system_type_0_locations_ = np.array(self.system_type_0_locations_)
         self.system_type_1_locations_ = np.array(self.system_type_1_locations_)
-        self.system_locations_ = np.array(self.system_type_0_locations_ + self.system_type_1_locations_)
+
+        self.system_locations_ = np.array(total_locations)
 
         
     def clusterByTask(self):
@@ -153,46 +188,55 @@ class AgentConnectivity(Node):
             
     def calcConnectionVector(self):
         l = list()
-        for i in range(self.num_agents_-1):
-            for j in range(i+1, self.num_agents_):
+        keys = list(self.system_dict_.keys())
+        count = 0
+        for i in keys:
+            keys_mod = keys[count+1:]
+            for j in keys_mod:
                 if j in self.system_dict_[i].connections:
                     l.append(1)
                 else:
                     l.append(0)
+            count += 1
         return np.array(l)
 
         
     def cycleCallback(self):
-        self.updateSystemLocations()
-        # also need to update the locations at the barrier certificates 
+        self.get_logger().info("system: %s" %(self.system_dict_))
+
+        if self.received_ and self.received_pose_:
+            self.updateSystemLocations()
+            # also need to update the locations at the barrier certificates 
         
-        self.clusterByTask()
-        
-        for cluster in self.clusters_:
-            cluster.setMembers(self.system_dict_.values())
+            self.clusterByTask()
+            for cluster in self.clusters_:
+                cluster.setMembers(self.system_dict_.values())
+                self.get_logger().info("cluster: %s"%(cluster))
 
-        level_0_network = K0Network(self.clusters_, self.level_0_connectivity_) 
+            level_0_network = K0Network(self.clusters_, self.level_0_connectivity_) 
 
-        full_network = Network(self.clusters_,
-                               self.system_dict.values(),
-                               level_0_network,
-                               self.level_0_connectivity_,
-                               self.levle_1_connectivity_,
-                               len(self.system_type_0_),
-                               len(self.system_type_1_)
-                               )
+            full_network = Network(self.clusters_,
+                                   self.system_dict_.values(),
+                                   level_0_network,
+                                   self.level_0_connectivity_,
+                                   self.level_1_connectivity_,
+                                   len(self.system_type_0_),
+                                   len(self.system_type_1_)
+                                   )
 
-        for ag in self.system_dict_.values():
-            ag.setConnections(full_network.connections)
-            ag.calcDesiredControl(self.magnitude_)
+            for ag in self.system_dict_.values():
+                ag.setConnections(full_network.connections)
+                ag.calcDesiredControl(self.magnitude_)
 
-        self.connection_vector_ = self.calcConnectionVector()
+            self.connection_vector_ = self.calcConnectionVector()
+            self.get_logger().info("locations: %s " %(self.system_locations_))
 
-        self.planner_.locations = self.system_locations_
-        self.planner_.connection_vector = self.connection_vector_
+            self.planner_.locations = self.system_locations_
+            self.planner_.connection_vector = self.connection_vector_
 
-        u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_)
-        
+            u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_)
+            self.get_logger().info("U_star: %s" %(u_star))
+
         # TODO
         # 1. cluster by task -- DONE
         # 2. initiate k0 network -- DONE

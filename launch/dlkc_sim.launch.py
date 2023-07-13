@@ -1,3 +1,9 @@
+"""
+Author: Jason Hughes
+Date: July 2023
+About: launch file for sim
+"""
+
 import os
 import sys
 import yaml
@@ -20,16 +26,23 @@ def generate_launch_description():
 
     with open(path,'r') as f:
         config = yaml.safe_load(f)
-    
-    params = config[list(config.keys())[0]]['ros__parameters']     
-    params["sys_id"] = 1
-    params["level"] = 0
-    node = Node(package = 'dlkc',
-                name = 'dlkc_node',
-                executable = 'connectivity_node.py',
-                parameters = [params])
 
-    ld.add_action(node)
+    for arg in sys.argv:
+        if arg.startswith("num_agents:="):
+            num_agents = int(arg.split(':=')[1])
+        
+    params = config[list(config.keys())[0]]['ros__parameters']     
+   
+    for i in range(1,num_agents+1):     
+        params["sys_id"] = i
+        params["level"] = 0
+        
+        node = Node(package = 'dlkc',
+                    name = 'dlkc_node',
+                    executable = 'connectivity_node.py',
+                    parameters = [params])
+
+        ld.add_action(node)
 
     return ld
 

@@ -4,7 +4,8 @@ AgentConnectivity:
     alpha: 1.0
     magnitude: 1.0
     dimension: 2
-    level: 1
+    level_0: 2
+    level_1: 3
     safety_radius: 5.0
     connection_radius: 50.0
-    
+    task: 1        
