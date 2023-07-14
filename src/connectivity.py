@@ -58,7 +58,8 @@ class AgentConnectivity(Node):
         
         self.control_vector_ = np.array((0,0))
         self.connection_vector_ = np.array((0,0))
-
+        self.desired_control_ = np.array((0,0))
+        
         self.control_vec_pub_ = self.create_publisher(TwistStamped,
                                                       "internal/goto_vel",
                                                       qos)
@@ -203,7 +204,8 @@ class AgentConnectivity(Node):
         
     def cycleCallback(self):
         self.get_logger().info("system: %s" %(self.system_dict_))
-
+        self.get_logger().info("desired shape: (%s,%s)" %(self.dim_, self.num_agents_))
+        self.get_logger().info("num_agents: %s" %self.num_agents_)
         if self.received_ and self.received_pose_:
             self.updateSystemLocations()
             # also need to update the locations at the barrier certificates 
@@ -223,18 +225,23 @@ class AgentConnectivity(Node):
                                    len(self.system_type_0_),
                                    len(self.system_type_1_)
                                    )
-
+            control = list()
             for ag in self.system_dict_.values():
                 ag.setConnections(full_network.connections)
                 ag.calcDesiredControl(self.magnitude_)
-
+                control.append(ag.desired_control)
+            self.desired_control_ = np.array(control)
+            
             self.connection_vector_ = self.calcConnectionVector()
             self.get_logger().info("locations: %s " %(self.system_locations_))
 
             self.planner_.locations = self.system_locations_
             self.planner_.connection_vector = self.connection_vector_
 
-            u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_)
+            self.connection_certificate_.locs = self.system_locations_.flatten()
+            self.safety_certificate_.locs = self.system_locations_.flatten()
+            
+            u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_, self.desired_control_.flatten())
             self.get_logger().info("U_star: %s" %(u_star))
 
         # TODO

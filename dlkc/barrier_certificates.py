@@ -28,7 +28,14 @@ class BarrierCertificate:
     @locs.setter
     def locs(self, l):
         self.locs_ = l
-    
+
+    @property
+    def num_agents(self):
+        return self.n_
+
+    @num_agents.setter
+    def num_agents(self, n):
+        self.n_ = n
     
 class ConnectionCertificate(BarrierCertificate):
 
@@ -36,7 +43,6 @@ class ConnectionCertificate(BarrierCertificate):
 
         super().__init__(locs, n, dim)
         self.radius_ = radius
-        self.n_ = n
         self.dim_ = dim
         self.conn_vec_ = vec
         
@@ -53,7 +59,6 @@ class SafetyCertificate(BarrierCertificate):
 
         super().__init__(locs, n, dim)
         self.radius_ = radius
-        self.n_ = n
         self.dim_ = dim
 
 

@@ -4,6 +4,7 @@ Date: June 2023
 About: Multi-Layer K-Connectivity planner
 """
 import numpy as np
+from scipy.optimize import minimize, rosen, rosen_der, LinearConstraint
 
 class ConnectivityPlanner:
 
@@ -40,7 +41,7 @@ class ConnectivityPlanner:
     @locations.setter
     def locations(self, l):
         assert type(l) == type(np.array([1,1]))
-        assert l.shape == (self.num_agents_, self.dimension_)
+        assert l.shape == (self.dimension_, self.num_agents_)
         self.locations_ = l
 
     @property
@@ -55,11 +56,11 @@ class ConnectivityPlanner:
 
     def optimize(self, Bs, Bc, control):
 
-        u0 = 0.0 * np.ones(self.dim*self.num_agents)
+        u0 = 0.0 * np.ones(self.dimension_*self.num_agents)
         
         func = lambda u : np.sum( np.linalg.norm(u - control)**2 )
         
-        cons = ({'type': 'ineq', 'fun': Bc.connectivityConstraint},
+        cons = ({'type': 'ineq', 'fun': Bc.connectionConstraint},
                 {'type': 'ineq', 'fun': Bs.safetyConstraint})
         
         res = minimize(func, u0, method='SLSQP', constraints=cons)
