@@ -64,5 +64,5 @@ class ConnectivityPlanner:
                 {'type': 'ineq', 'fun': Bs.safetyConstraint})
         
         res = minimize(func, u0, method='SLSQP', constraints=cons)
-        return np.reshape(res.x,(self.num_agents,self.dim))
+        return np.reshape(res.x,(self.num_agents_,self.dimension_))
     

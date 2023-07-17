@@ -40,7 +40,9 @@ def generate_launch_description():
         node = Node(package = 'dlkc',
                     name = 'dlkc_node',
                     executable = 'connectivity_node.py',
-                    parameters = [params])
+                    parameters = [params],
+                    output = 'screen'
+                    )
 
         ld.add_action(node)
 

@@ -237,9 +237,13 @@ class AgentConnectivity(Node):
 
             self.planner_.locations = self.system_locations_
             self.planner_.connection_vector = self.connection_vector_
-
+            self.planner_.num_agents = self.num_agents_
+            
             self.connection_certificate_.locs = self.system_locations_.flatten()
             self.safety_certificate_.locs = self.system_locations_.flatten()
+
+            self.connection_certificate_.num_agents = self.num_agents_
+            self.safety_certificate_.num_agents = self.num_agents_
             
             u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_, self.desired_control_.flatten())
             self.get_logger().info("U_star: %s" %(u_star))
