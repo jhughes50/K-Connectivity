@@ -68,6 +68,7 @@ class AgentConnectivity(Node):
         self.received_pose_ = False
         
         self.my_pose_ = np.array([])
+        self.my_index_ = 0
         
         self.system_dict_ = dict()
         self.system_locations_ = list()
@@ -160,6 +161,7 @@ class AgentConnectivity(Node):
                     self.system_type_1_[ag.sys_id].location = location
                     
         self.system_dict_ = self.system_type_0_ | self.system_type_1_
+        self.system_dict_ = self.sortDict(self.system_dict_)
         self.num_agents_ = len(self.system_dict_)
                                                                
 
@@ -187,6 +189,10 @@ class AgentConnectivity(Node):
             ag.cluster = ag.task_index
 
             
+    def sortDict(self, in_dict: dict):
+        return dict(sorted(d.items()))
+        
+            
     def calcConnectionVector(self):
         l = list()
         keys = list(self.system_dict_.keys())
@@ -207,9 +213,15 @@ class AgentConnectivity(Node):
         self.get_logger().info("desired shape: (%s,%s)" %(self.dim_, self.num_agents_))
         self.get_logger().info("num_agents: %s" %self.num_agents_)
         if self.received_ and self.received_pose_:
+
+            self.system_type_0_ = self.sortDict(self.system_type_0_)
+            self.system_type_1_ = self.sortDict(self.system_type_1_)
+
             self.updateSystemLocations()
-            # also need to update the locations at the barrier certificates 
-        
+
+            self.my_index_ = list(self.system_dict_.keys()).index()
+            self.get_logger().info("my index: %s" %s)
+            
             self.clusterByTask()
             for cluster in self.clusters_:
                 cluster.setMembers(self.system_dict_.values())
