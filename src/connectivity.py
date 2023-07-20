@@ -54,14 +54,14 @@ class AgentConnectivity(Node):
         self.level_1_connectivity_ = self.get_parameter("level_1").value
         self.my_task_ = self.get_parameter("task").value
         
-        self.tasks_ = {0:[1,1], 1:[2,2]}
+        self.tasks_ = {0:[100,100], 1:[200,200]}
         
         self.control_vector_ = np.array((0,0))
         self.connection_vector_ = np.array((0,0))
         self.desired_control_ = np.array((0,0))
         
         self.control_vec_pub_ = self.create_publisher(TwistStamped,
-                                                      "internal/goto_vel",
+                                                      "casa"+str(self.sys_id_)+"/internal/goto_vel",
                                                       qos)
 
         self.received_ = False
@@ -137,7 +137,6 @@ class AgentConnectivity(Node):
         
     def agentArrayCallback(self, msg):
         #array msg callback
-        self.get_logger().info("in callback")
         self.received_ = True
         for ag in msg.agents:
             location = np.array((ag.local_pose.x, ag.local_pose.y))
@@ -190,7 +189,7 @@ class AgentConnectivity(Node):
 
             
     def sortDict(self, in_dict: dict):
-        return dict(sorted(d.items()))
+        return dict(sorted(in_dict.items()))
         
             
     def calcConnectionVector(self):
@@ -207,10 +206,17 @@ class AgentConnectivity(Node):
             count += 1
         return np.array(l)
 
-        
+
+    def publishControl(self, control):
+        msg = TwistStamped()
+        msg.twist.linear.x = control[0]
+        msg.twist.linear.y = control[1]
+        msg.twist.linear.z = -5.0
+        self.control_vec_pub_.publish(msg)
+
+    
     def cycleCallback(self):
-        self.get_logger().info("system: %s" %(self.system_dict_))
-        self.get_logger().info("desired shape: (%s,%s)" %(self.dim_, self.num_agents_))
+
         self.get_logger().info("num_agents: %s" %self.num_agents_)
         if self.received_ and self.received_pose_:
 
@@ -219,8 +225,8 @@ class AgentConnectivity(Node):
 
             self.updateSystemLocations()
 
-            self.my_index_ = list(self.system_dict_.keys()).index()
-            self.get_logger().info("my index: %s" %s)
+            self.my_index_ = list(self.system_dict_.keys()).index(self.sys_id_)
+            self.get_logger().info("my index: %s" %self.my_index_)
             
             self.clusterByTask()
             for cluster in self.clusters_:
@@ -258,8 +264,13 @@ class AgentConnectivity(Node):
             self.safety_certificate_.num_agents = self.num_agents_
             
             u_star = self.planner_.optimize(self.safety_certificate_, self.connection_certificate_, self.desired_control_.flatten())
-            self.get_logger().info("U_star: %s" %(u_star))
 
+            control = u_star[self.my_index_,:]
+            self.publishControl(control)
+            self.get_logger().info("control vector: %s" %(control))
+
+            
+            
         # TODO
         # 1. cluster by task -- DONE
         # 2. initiate k0 network -- DONE

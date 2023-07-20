@@ -6,6 +6,6 @@ AgentConnectivity:
     dimension: 2
     level_0: 2
     level_1: 3
-    safety_radius: 5.0
+    safety_radius: 2.0
     connection_radius: 50.0
     task: 1        
