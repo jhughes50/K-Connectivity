@@ -17,7 +17,6 @@ from dlkc.checks import *
 from casa_msgs.msg import CasaAgent, CasaAgentArray
 from geometry_msgs.msg import TwistStamped, PoseStamped
 from time import sleep
-from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 
 class AgentConnectivity(Node):
