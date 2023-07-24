@@ -1,0 +1,11 @@
+AgentConnectivity:
+  ros__parameters:
+    sys_id: 1
+    alpha: 1.0
+    magnitude: 1.0
+    dimension: 2
+    level_0: 2
+    level_1: 3
+    safety_radius: 2.0
+    connection_radius: 50.0
+    task: 1        
