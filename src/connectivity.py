@@ -12,7 +12,6 @@ from dlkc.agent import Agent
 from dlkc.connectivity_planner import ConnectivityPlanner
 from dlkc.cluster import Cluster
 from dlkc.network import K0Network, Network
-from dlkc.plotting import *
 from dlkc.checks import *
 from casa_msgs.msg import CasaAgent, CasaAgentArray
 from geometry_msgs.msg import TwistStamped, PoseStamped
